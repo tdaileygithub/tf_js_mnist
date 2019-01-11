@@ -18,11 +18,13 @@
     <!-- boostrap -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">    
     <script src="/js/bootstrap.min.js" ></script>    
-
     <!-- spin.js -->
     <link rel="stylesheet" href="/css/spin.css" />    
     <script src="/js/spin.js"></script>
-
+    <!-- c3 and d3 -->
+    <link rel="stylesheet" href="/css/c3.min.css" />    
+    <script src="/js/d3.min.js"></script>
+    <script src="/js/c3.min.js"></script>
     <!-- our source -->
     <script src="/js/tf_funcs.js"></script>
     <link rel="stylesheet" href="/css/app.css" />
@@ -32,23 +34,24 @@
 <body id="vm">
     
     <div class="container-fluid" style="margin-top: 4em">
-        <div class="row" >
-            <div class="col-12 spinner" >
-                <div id="spinner">
-                </div>            
-            </div>        
-        </div>
         <div class="row">
             <div class="col-3">
             </div>
-            <div class="col-6">
-            <button type="button" class="btn btn-primary" data-bind="click: $root.load_data,            enable: load_data_button_enabled()">Load Data</button>
-            <button type="button" class="btn btn-primary" data-bind="click: $root.create_tf_model,      enable: create_tf_model_button_enabled()">Create TF Model</button>
-            <button type="button" class="btn btn-primary" data-bind="click: $root.train_model,          enable: train_button_enabled()">Train</button>
+            <div class="col-6" align="center">
+                <button type="button" class="btn btn-primary" data-bind="click: $root.load_data,                                    enable: load_data_button_enabled()">1) Load Data</button>
+                <select class="custom-select" style="width: 10em" data-bind="options: model_types, value: selected_model_type,      enable: create_tf_model_button_enabled()"></select>
+                <button type="button" class="btn btn-primary" data-bind="click: $root.create_tf_model,                              enable: create_tf_model_button_enabled()">2) Create TF Model</button>                
+                <button type="button" class="btn btn-primary" data-bind="click: $root.train_model,                                  enable: train_button_enabled()">3) Train</button>
             </div>
             <div class="col-3">
             </div>            
         </div>
+        <div class="row" >
+            <div class="col-12 spinner" align="center">                
+                <div id="spinner">                    
+                </div>            
+            </div>        
+        </div>        
         <div class="row">
             <div class="col-6">
                 <div id="p5container">
@@ -90,6 +93,9 @@ const NUM_TEST_ELEMENTS = NUM_DATASET_ELEMENTS - NUM_TRAIN_ELEMENTS;
         self.model_created      =  ko.observable(false);
         self.is_training        =  ko.observable(false);
         self.fetching           =  ko.observable(false);
+
+        self.selected_model_type    =  ko.observable('ConvNet');
+        self.model_types            =  ko.observableArray(['ConvNet', 'DenseNet']);
         
         self.train_images_raw   = new Float32Array(NUM_TRAIN_ELEMENTS * (IMAGE_SIZE));
         self.test_images_raw    = new Float32Array(NUM_TEST_ELEMENTS * (IMAGE_SIZE));
@@ -145,8 +151,20 @@ const NUM_TEST_ELEMENTS = NUM_DATASET_ELEMENTS - NUM_TRAIN_ELEMENTS;
             return  {xs, labels};
         };
 
+        self.get_model = function() {
+            let model;
+            if (self.selected_model_type() === 'ConvNet') {
+                model = createConvModel();
+            } else if (self.selected_model_type() === 'DenseNet') {
+              model = createDenseModel();
+            } else {
+              throw new Error(`Invalid model type: ${modelType}`);
+            }
+            return model;
+        };
+
         self.create_tf_model = function () {            
-            self.tf_model(createModel());
+            self.tf_model(self.get_model());
             self.tf_model().summary();
             self.model_created(true);
         };
@@ -156,7 +174,7 @@ const NUM_TEST_ELEMENTS = NUM_DATASET_ELEMENTS - NUM_TRAIN_ELEMENTS;
 
             train(  self.tf_model(), 
                     self.getTrainData(), 
-                    self.getTestData(), 
+                    self.getTestData(),                     
                     () => showPredictions(self.tf_model()));
         };        
 
@@ -214,6 +232,61 @@ const NUM_TEST_ELEMENTS = NUM_DATASET_ELEMENTS - NUM_TRAIN_ELEMENTS;
                 },					  
             });                
         };
+
+        self.subscribe = function (){
+            self.data_is_loading.subscribe(function(newValue) {
+                if (newValue) {
+                    self.spin_start();
+                }
+                else {
+                    self.spin_stop();
+                }
+            });
+            self.is_training.subscribe(function(newValue) {
+                if (newValue) {
+                    self.spin_start();
+                }
+                else {
+                    self.spin_stop();
+                }
+            });            
+        };        
+
+        self.get_spinner_opts = function() {
+            return {
+                lines: 13, // The number of lines to draw
+                length: 38, // The length of each line
+                width: 17, // The line thickness
+                radius: 45, // The radius of the inner circle
+                scale: 1, // Scales overall size of the spinner
+                corners: 1, // Corner roundness (0..1)
+                color: 'gray', // CSS color or array of colors
+                fadeColor: 'transparent', // CSS color or array of colors
+                speed: 1, // Rounds per second
+                rotate: 0, // The rotation offset
+                animation: 'spinner-line-fade-quick', // The CSS animation name for the lines
+                direction: 1, // 1: clockwise, -1: counterclockwise
+                zIndex: 2e9, // The z-index (defaults to 2000000000)
+                className: 'spinner', // The CSS class to assign to the spinner
+                top: '50%', // Top position relative to parent
+                left: '50%', // Left position relative to parent
+                shadow: '0 0 1px transparent', // Box-shadow for the lines
+                position: 'absolute' // Element positioning
+            };
+        }
+
+        self.spin_start = function (){
+            $('#spinner').show();
+        };
+        self.spin_stop = function (){
+            $('#spinner').hide();
+        };
+
+        var target = document.getElementById('spinner');
+        var spinner = new Spinner(self.get_spinner_opts()).spin(target);       
+        self.spin_stop();
+        
+        self.subscribe();
     };
 
     //var img;
@@ -309,27 +382,13 @@ async function showPredictions(model) {
       showTestResults(examples, predictions, labels);
   });
 }
-
-function createModel() {
-  let model;
-  //const modelType = ui.getModelTypeId();
-  //if (modelType === 'ConvNet') {
-    model = createConvModel();
-  //} else if (modelType === 'DenseNet') {
-  //  model = createDenseModel();
-  //} else {
-  //  throw new Error(`Invalid model type: ${modelType}`);
-  //}
-  return model;
-}
+//TODO:   processing.js functions
 
     function setup() {
         var canvas = createCanvas(28, 28);
         canvas.parent("p5container");
     }
-
-    //function draw() {
-        
+    //function draw() {        
     //    try
     //    {
     //        //image(vm.train_data()[0], 0, 0);
@@ -340,10 +399,8 @@ function createModel() {
     //            return;
     //        }
     //        //console.info('drawging ');
-
     //        vm.fetching(true);
     //        //console.info('fetch issued ');
-
     //        vm.db().transaction('r', vm.db().images, () => {
     //            var rand_index = Math.floor((Math.random() * 1000) + 1);
     //            vm.db().images.get(rand_index).then (function (firstImage) {
@@ -360,65 +417,39 @@ function createModel() {
     //                }
     //                vm.fetching(false);
     //            });
-
     //        }).catch(function (e) {
     //            vm.fetching(false);
     //            console.error (e.stack || e);
     //        });
-
     //    }
     //    catch (error)
     //    {
     //        console.error(error);
     //    }
     //}
-    function write_rgba_pixel(image, row, col, red, green, blue, alpha) {
-        var index = (row + col * image.width) * 4;
-        image.pixels[index] = red;
-        image.pixels[index + 1] = green;
-        image.pixels[index + 2] = blue;
-        image.pixels[index + 3] = alpha;
-    }
-    function create_processingjs_image(train_csv_row) {
-        var mnistpixels = createImage(28, 28);
-        mnistpixels.loadPixels();
-        var image_label = train_csv_row.data[0][0];
-        var index = 1;
-        for (var row = 0; row < mnistpixels.height; row++) {
-            for (var col = 0; col < mnistpixels.width; col++, index++) {
-                var gray_val = train_csv_row.data[0][index];
-                write_rgba_pixel(mnistpixels, row, col, gray_val, gray_val, gray_val, 255);
-            }
-        }
-        mnistpixels.updatePixels();
-        return mnistpixels;
-    }
+    // function write_rgba_pixel(image, row, col, red, green, blue, alpha) {
+    //     var index = (row + col * image.width) * 4;
+    //     image.pixels[index] = red;
+    //     image.pixels[index + 1] = green;
+    //     image.pixels[index + 2] = blue;
+    //     image.pixels[index + 3] = alpha;
+    // }
+    // function create_processingjs_image(train_csv_row) {
+    //     var mnistpixels = createImage(28, 28);
+    //     mnistpixels.loadPixels();
+    //     var image_label = train_csv_row.data[0][0];
+    //     var index = 1;
+    //     for (var row = 0; row < mnistpixels.height; row++) {
+    //         for (var col = 0; col < mnistpixels.width; col++, index++) {
+    //             var gray_val = train_csv_row.data[0][index];
+    //             write_rgba_pixel(mnistpixels, row, col, gray_val, gray_val, gray_val, 255);
+    //         }
+    //     }
+    //     mnistpixels.updatePixels();
+    //     return mnistpixels;
+    // }
 
 $(document).ready(function() {    
-    var opts = {
-        lines: 13, // The number of lines to draw
-        length: 38, // The length of each line
-        width: 17, // The line thickness
-        radius: 45, // The radius of the inner circle
-        scale: 1, // Scales overall size of the spinner
-        corners: 1, // Corner roundness (0..1)
-        color: 'gray', // CSS color or array of colors
-        fadeColor: 'transparent', // CSS color or array of colors
-        speed: 1, // Rounds per second
-        rotate: 0, // The rotation offset
-        animation: 'spinner-line-fade-quick', // The CSS animation name for the lines
-        direction: 1, // 1: clockwise, -1: counterclockwise
-        zIndex: 2e9, // The z-index (defaults to 2000000000)
-        className: 'spinner', // The CSS class to assign to the spinner
-        top: '50%', // Top position relative to parent
-        left: '50%', // Left position relative to parent
-        shadow: '0 0 1px transparent', // Box-shadow for the lines
-        position: 'absolute' // Element positioning
-    };
-
-var target = document.getElementById('spinner');
-var spinner = new Spinner(opts).spin(target);    
-
 });
 
     </script>

@@ -15,7 +15,7 @@
  * =============================================================================
  */
 
- /** TD-- lightly modified functions to accept data as input instead of globals */
+ /** TD-- modified functions to accept data as input instead of globals */
 
 /**
  * Compile and train the given model.
