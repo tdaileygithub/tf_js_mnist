@@ -19,27 +19,25 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">    
     <script src="/js/bootstrap.min.js" ></script>    
 
+    <!-- spin.js -->
+    <link rel="stylesheet" href="/css/spin.css" />    
+    <script src="/js/spin.js"></script>
+
     <!-- our source -->
     <script src="/js/tf_funcs.js"></script>
     <link rel="stylesheet" href="/css/app.css" />
     <title>MNIST using Tensorflow.js</title>
-    <style>
-.pred {
-    font-size: 20px;
-    line-height: 25px;
-    width: 100px;
-  }
-  .pred-correct {
-    background-color: #00cf00;
-  }
-  .pred-incorrect {
-    background-color: red;
-  }        
-        </style>
+    
 </head>
 <body id="vm">
     
     <div class="container-fluid" style="margin-top: 4em">
+        <div class="row" >
+            <div class="col-12 spinner" >
+                <div id="spinner">
+                </div>            
+            </div>        
+        </div>
         <div class="row">
             <div class="col-3">
             </div>
@@ -51,7 +49,6 @@
             <div class="col-3">
             </div>            
         </div>
-
         <div class="row">
             <div class="col-6">
                 <div id="p5container">
@@ -396,6 +393,34 @@ function createModel() {
         mnistpixels.updatePixels();
         return mnistpixels;
     }
+
+$(document).ready(function() {    
+    var opts = {
+        lines: 13, // The number of lines to draw
+        length: 38, // The length of each line
+        width: 17, // The line thickness
+        radius: 45, // The radius of the inner circle
+        scale: 1, // Scales overall size of the spinner
+        corners: 1, // Corner roundness (0..1)
+        color: 'gray', // CSS color or array of colors
+        fadeColor: 'transparent', // CSS color or array of colors
+        speed: 1, // Rounds per second
+        rotate: 0, // The rotation offset
+        animation: 'spinner-line-fade-quick', // The CSS animation name for the lines
+        direction: 1, // 1: clockwise, -1: counterclockwise
+        zIndex: 2e9, // The z-index (defaults to 2000000000)
+        className: 'spinner', // The CSS class to assign to the spinner
+        top: '50%', // Top position relative to parent
+        left: '50%', // Left position relative to parent
+        shadow: '0 0 1px transparent', // Box-shadow for the lines
+        position: 'absolute' // Element positioning
+    };
+
+var target = document.getElementById('spinner');
+var spinner = new Spinner(opts).spin(target);    
+
+});
+
     </script>
 </body>
 </html>
