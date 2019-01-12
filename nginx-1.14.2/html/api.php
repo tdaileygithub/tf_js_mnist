@@ -13,10 +13,10 @@
 	$test_images	= array();
 	$predict_images = array();
 
-	$stmt = $db->prepare('SELECT id,label,pixels FROM images');	
+	$stmt = $db->prepare('SELECT id,label,pixels FROM images where id in (SELECT id FROM images ORDER BY RANDOM()) ');	
 	$result =  $stmt->execute();
 	$count = 0;
-	while($row=$result->fetchArray())
+	while($row=$result->fetchArray($mode = SQLITE3_NUM))
 	{	   	   
 	   $obj			= new stdClass;
 	   $obj->id		= $row[0];
