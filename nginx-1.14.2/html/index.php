@@ -94,8 +94,8 @@
             <div class="col-1">
             </div>                           
         </div>
-        <div class="row" style="height:300px">
-            <div class="col-2 ml-auto d-flex align-items-center">
+        <div class="row" style="height:300px" data-bind="visible: is_training">>
+            <div class="col-2">
                 <h1>Training</h1>
             </div>
             <div class="col-4">
@@ -109,16 +109,9 @@
             <div class="col-2">
             </div>
         </div>          
-        <div class="row">
-            <div class="col-6">
-                <div id="p5container">
-                </div>
-            </div>
-            <div class="col-6">                    
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-2">
+        <div class="row" data-bind="visible: is_training">
+            <div class="col-2 ml-auto d-flex align-items-center">
+                <h1>Test Predictions</h1>
             </div>
             <div class="col-8">
                 <div id="images" style="display:inline-flex"></div>
