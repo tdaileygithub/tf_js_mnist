@@ -3,7 +3,7 @@ class LocalDb {
     constructor() {                 
         this.db = new Dexie("localmnist");
         this.db.version(1).stores({
-            images: 'id,train_image,train_label'
+            images: 'id'
         });        
     }
 
