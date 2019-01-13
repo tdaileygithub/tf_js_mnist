@@ -8,14 +8,13 @@ class LocalDb {
     }
 
     async save_data(  
-                train_images_raw,
-                train_labels_raw,
-                NUM_DATASET_ELEMENTS,
-                IMAGE_SIZE,
-                NUM_CLASSES
+        train_images_raw,
+        train_labels_raw,
+        NUM_DATASET_ELEMENTS,
+        IMAGE_SIZE,
+        NUM_CLASSES
     ) 
-    {
-        //return;
+    {        
         return this.db.transaction('rw', this.db.images, async ()=>{
             for (var i=0; i< NUM_DATASET_ELEMENTS; i+=1) {                
                 const image_offset=(i*IMAGE_SIZE);
@@ -27,9 +26,8 @@ class LocalDb {
                     train_label: train_labels_raw.slice(label_offset, label_offset+NUM_CLASSES)
                 });       
             }
-        }).then(result => {
-            alert('2 - trans commited');
-            //return result;
+        }).then(result => {            
+            //trans commited
         }).catch(function(error) {
             alert ("Ooops: " + error);
         });        
@@ -69,5 +67,5 @@ class LocalDb {
             dfd.resolve( val );
         });        
         return dfd.promise();
-    };    
+    };
 }
