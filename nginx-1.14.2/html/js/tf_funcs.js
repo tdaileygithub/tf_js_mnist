@@ -22,7 +22,12 @@
  *
  * @param {*} model The model to
  */
-async function train(model, trainData, testData, onIteration) {
+async function train(
+  model, 
+  batchEnd, 
+  epochEnd, 
+  onIteration) 
+{
     // Now that we've defined our model, we will define our optimizer. The
     // optimizer will be used to optimize our model's weight values during
     // training so that we can decrease our training loss and increase our
@@ -78,7 +83,10 @@ async function train(model, trainData, testData, onIteration) {
   
     // We'll keep a buffer of loss and accuracy values over time.
     let trainBatchCount = 0;
-  
+      
+    const trainData = vm.getTrainData();
+    const testData = vm.getTestData();
+
     const totalNumBatches =
         Math.ceil(trainData.xs.shape[0] * (1 - validationSplit) / batchSize) *
         trainEpochs;
@@ -94,27 +102,22 @@ async function train(model, trainData, testData, onIteration) {
       callbacks: {
         onBatchEnd: async (batch, logs) => {
           trainBatchCount++;
-  
-            console.info(
-                `Training... (` +
-                `${(trainBatchCount / totalNumBatches * 100).toFixed(1)}%` +
-                ` complete). To stop training, refresh or close page.`);
-            console.info('batch,loss,accuracry',trainBatchCount, logs.loss,logs.acc);          
-        //ui.logStatus(
-          //    `Training... (` +
-          //    `${(trainBatchCount / totalNumBatches * 100).toFixed(1)}%` +
-          //    ` complete). To stop training, refresh or close page.`);
-          //ui.plotLoss(trainBatchCount, logs.loss, 'train');
-          //ui.plotAccuracy(trainBatchCount, logs.acc, 'train');
-          if (onIteration && batch % 100 === 0) {
-            onIteration('onBatchEnd', batch, logs);
-          }
-          await tf.nextFrame();
+                        
+            batchEnd(trainBatchCount, totalNumBatches, logs);
+
+            //draw the prediction samples
+            //if (onIteration && batch % batchSize === 0) {
+                onIteration('onBatchEnd', batch, logs);
+            //}          
+            await tf.nextFrame();
         },
         onEpochEnd: async (epoch, logs) => {
           valAcc = logs.val_acc;
           //ui.plotLoss(trainBatchCount, logs.val_loss, 'validation');
           //ui.plotAccuracy(trainBatchCount, logs.val_acc, 'validation');
+
+          epochEnd(epoch, trainBatchCount, totalNumBatches, logs);
+
           if (onIteration) {
             onIteration('onEpochEnd', epoch, logs);
           }
@@ -123,9 +126,9 @@ async function train(model, trainData, testData, onIteration) {
       }
     });
   
-    const testResult = model.evaluate(testData.xs, testData.labels);
-    const testAccPercent = testResult[1].dataSync()[0] * 100;
-    const finalValAccPercent = valAcc * 100;
+    const testResult          = model.evaluate(testData.xs, testData.labels);
+    const testAccPercent      = testResult[1].dataSync()[0] * 100;
+    const finalValAccPercent  = valAcc * 100;
     console.info(`Final validation accuracy: ${finalValAccPercent.toFixed(1)}%; ` + `Final test accuracy: ${testAccPercent.toFixed(1)}%`);
     //ui.logStatus(
     //    `Final validation accuracy: ${finalValAccPercent.toFixed(1)}%; ` +
