@@ -37,7 +37,7 @@
     <script src="/js/pnotify.js"></script>    
     <!-- our source -->
     <script src="/js/viewmodel/viewmodel.js"></script>  
-    <script src="/js/tf_funcs.js"></script>
+    <script src="/js/functions/tf_funcs.js"></script>
     <script src="/js/viewmodel/spin.js"></script>    
     <script src="/js/viewmodel/notify.js"></script>
     <script src="/js/model/local_db.js"></script>
