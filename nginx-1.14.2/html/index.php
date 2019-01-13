@@ -60,7 +60,7 @@
                 <button type="button"                               class="btn btn-primary" data-bind="click: $root.create_tf_model,                              enable: create_tf_model_button_enabled()">2) Create TF Model</button>                
                 <button type="button"                               class="btn btn-primary" data-bind="click: $root.train_model,                                  enable: train_button_enabled()">3) Train</button>
                 <button type="button"                               class="btn btn-primary" data-bind="click: $root.save_model,                                   enable: save_model_button_enabled()">4) Save Model</button>
-                <button type="button"                               class="btn btn-primary" data-bind="click: $root.predict,                                      enable: save_model_button_enabled()">5) Predict</button>
+                <button type="button"                               class="btn btn-primary" data-bind="click: $root.predict,                                      enable: predict_button_enabled()">5) Predict</button>
             </div>
             <div class="col-3">
                 <table class="table">
@@ -122,38 +122,26 @@
             </div>            
         </div>            
     </div>
-    <script>
-
-const IMAGE_H = 28;
-const IMAGE_W = 28;
-const IMAGE_SIZE = IMAGE_H * IMAGE_W;
-const NUM_CLASSES = 10;
-const NUM_DATASET_ELEMENTS = 35700 + 6300;
-const NUM_TRAIN_ELEMENTS = 35700 ;
-const NUM_TEST_ELEMENTS = NUM_DATASET_ELEMENTS - NUM_TRAIN_ELEMENTS;
-
-
-// 55/65 = .15
-// const NUM_DATASET_ELEMENTS = 65000;
-// const NUM_TRAIN_ELEMENTS = 55000;
-// const NUM_TEST_ELEMENTS = NUM_DATASET_ELEMENTS - NUM_TRAIN_ELEMENTS;
+<script>
+    const IMAGE_H = 28;
+    const IMAGE_W = 28;
+    const IMAGE_SIZE = IMAGE_H * IMAGE_W;
+    const NUM_CLASSES = 10;
+    const NUM_DATASET_ELEMENTS = 35700 + 6300;
+    const NUM_TRAIN_ELEMENTS = 35700 ;
+    const NUM_TEST_ELEMENTS = NUM_DATASET_ELEMENTS - NUM_TRAIN_ELEMENTS;
 
     //Dexie.delete('localmnist');
     //amplify.store( 'data_loaded',null)
 
-    //var img;
     var vm = new ViewModel();
     ko.applyBindings(vm, document.getElementById('vm'));
-    //vm.load_data();
 
 
+    $(document).ready(function() {
+        //TODO:   processing.js functions
+    });
+</script>
 
-
-
-//TODO:   processing.js functions
-$(document).ready(function() {
-});
-
-    </script>
 </body>
 </html>

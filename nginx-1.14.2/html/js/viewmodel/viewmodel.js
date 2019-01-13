@@ -62,12 +62,16 @@ var ViewModel = function () {
                 !self.is_training();
     }, self);
 
-    self.save_model_button_enabled = ko.pureComputed(function () {
-        return true;
-        // return  self.data_loaded() && 
-        //         self.model_created() &&
-        //         !self.is_training();
+    self.predict_button_enabled = ko.pureComputed(function () {        
+        return  self.training_complete();
+    }, self);    
+    self.save_model_button_enabled = ko.pureComputed(function () {        
+        return  self.training_complete();
     }, self);
+
+    self.training_complete = ko.pureComputed(function () {
+        return self.percent_training_complete() >= 100 ;
+    }, self);      
 
     self.current_accuracy = ko.pureComputed(function () {
         return self.accuracy_values()[self.accuracy_values().length-1];
@@ -324,6 +328,13 @@ var ViewModel = function () {
             }
             else {
                 self.spinner().spin_stop();
+            }
+        });   
+        self.percent_training_complete.subscribe(function(newValue) {
+            if (newValue >= 100) {
+                self.spinner().spin_stop();
+                self.notify().success('','Training Complete !!!' );
+                self.notify().success('','Validation Accuracy: ' + self.current_validation_accuracy() );
             }
         });   
         self.data_loaded.subscribe(function(newValue) {
