@@ -83,22 +83,6 @@ var ViewModel = function () {
         return self.loss_values()[self.loss_values().length-1];
     }, self);        
 
-    self.getTrainData = function () {
-        return  self.mnist_data().getTrainData();
-    };
-
-    self.getTestData = function (numExamples) {
-        return  self.mnist_data().getTestData(numExamples);
-    };
-
-
-    //working
-    self.getTrainData = ko.pureComputed(function () {
-        const xs = self.tf_train_images();
-        const labels = self.tf_train_label();
-        return  {xs, labels};
-    }, self);
-
     self.getTestData = function (numExamples) {
         let xs      = self.tf_test_images();
         let labels  = self.tf_test_label();
@@ -110,20 +94,10 @@ var ViewModel = function () {
     };
 
     self.getTrainData = ko.pureComputed(function () {
-        const xs = self.tf_train_images();
-        const labels = self.tf_train_label();
+        const xs        = self.tf_train_images();
+        const labels    = self.tf_train_label();
         return  {xs, labels};
     }, self);
-
-    self.getTestData = function (numExamples) {
-        let xs      = self.tf_test_images();
-        let labels  = self.tf_test_label();
-        if (numExamples != null) {
-            xs = xs.slice([0, 0, 0, 0], [numExamples, IMAGE_H, IMAGE_W, 1]);
-            labels = labels.slice([0, 0], [numExamples, NUM_CLASSES]);
-        }
-        return  {xs, labels};
-    };        
 
     self.get_model = function() {
         let model;
@@ -231,8 +205,7 @@ var ViewModel = function () {
             NUM_DATASET_ELEMENTS,
             IMAGE_SIZE,
             NUM_CLASSES
-        );
-        //HACK
+        );        
         amplify.store( 'data_loaded',       true);
         self.notify().info('','Data Saved to IndexedDB');            
     };
@@ -306,7 +279,7 @@ var ViewModel = function () {
                     };
                     img.src = 'data:image/png;base64,' + trainobj.pixels;
                     row_num++;
-                });                
+                });
             }).fail(function(jqXHR, textStatus, errorThrown) {                                        
                 self.notify().error('',textStatus + ': ' + errorThrown);
             });
