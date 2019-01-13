@@ -18,6 +18,12 @@ CREATE TABLE `images` (
 	`pixels`		BLOB NULL
 )
 ');
+$db->exec('
+CREATE INDEX `ix_images_label` ON `images` ( `label` )
+');
+$db->exec('
+CREATE INDEX `ix_images_prediction` ON `images` ( `prediction` )
+');
 
 function write_png_from_pixels($pixels_arr) {
 	$im 	= imagecreatetruecolor(28, 28);
@@ -52,7 +58,7 @@ while (($data = fgetcsv($file)) !== FALSE) {
 		$label_val = $data[0];
 		 
 		$stmt = $db->prepare('INSERT INTO images (label,pixels) VALUES (:label,:pixels)');		
-		$stmt->bindValue(':label',			$data[0],								SQLITE3_INTEGER);		
+		$stmt->bindValue(':label',			$data[0],													SQLITE3_INTEGER);		
 		$stmt->bindValue(':pixels', 		write_png_from_pixels(array_slice($data, 1)), 				\PDO::PARAM_LOB);
 		$stmt->execute();
 
@@ -69,7 +75,7 @@ $db->exec('BEGIN;');
 while (($data = fgetcsv($file)) !== FALSE) {
 	if ($row_ct > 0) {
 		$stmt = $db->prepare('INSERT INTO images (label,pixels) VALUES (:label,:pixels)');		
-		$stmt->bindValue(':label',			NULL,									SQLITE3_INTEGER);		
+		$stmt->bindValue(':label',			NULL,														SQLITE3_INTEGER);		
 		$stmt->bindValue(':pixels', 		write_png_from_pixels(array_slice($data, 0)), 				\PDO::PARAM_LOB);
 		$stmt->execute();
 		echo "row: " . $row_ct . "\n";		
