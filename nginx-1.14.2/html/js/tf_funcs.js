@@ -106,9 +106,9 @@ async function train(
             batchEnd(trainBatchCount, totalNumBatches, logs);
 
             //draw the prediction samples
-            //if (onIteration && batch % batchSize === 0) {
+            if (onIteration && batch % 50 === 0) {
                 onIteration('onBatchEnd', batch, logs);
-            //}          
+            }          
             await tf.nextFrame();
         },
         onEpochEnd: async (epoch, logs) => {
