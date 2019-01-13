@@ -15,6 +15,12 @@
     <script src="/js/processing.min.js"></script>
     <script src="/js/p5.min.js"></script>
     <script src="/js/p5.dom.min.js"></script>
+    <!-- amplify.js -->
+    <script src="/js/amplify.min.js"></script>
+    <script src="/js/amplify.request.min.js"></script>
+    <script src="/js/amplify.store.min.js"></script>
+    <!-- dexie.js -->
+    <script src="/js/dexie.min.js"></script>
     <!-- boostrap -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">    
     <script src="/js/bootstrap.min.js" ></script>    
@@ -25,10 +31,15 @@
     <link rel="stylesheet" href="/css/c3.min.css" />    
     <script src="/js/d3.min.js"></script>
     <script src="/js/c3.min.js"></script>
+    <!-- pnotify -->
+    <link rel="stylesheet" href="/css/pnotify.css" />    
+    <link rel="stylesheet" href="/css/pnotify.brighttheme.css" />        
+    <script src="/js/pnotify.js"></script>    
     <!-- our source -->
     <script src="/js/tf_funcs.js"></script>
-    <script src="/js/viewmodel/spin.js"></script>
-    <script src="/js/model/mnist_data.js"></script>
+    <script src="/js/viewmodel/spin.js"></script>    
+    <script src="/js/viewmodel/notify.js"></script>
+    <script src="/js/model/local_db.js"></script>
     <link rel="stylesheet" href="/css/app.css" />
     <title>MNIST using Tensorflow.js</title>
     
@@ -36,15 +47,10 @@
 <body id="vm">
     
     <div class="container-fluid" style="margin-top: 4em">
-        <div class="row" >
-            <div class="col-12" align="center">                
-                <h1>Mnist Using tf.js</h1>
-                <canvas id="canvas3"></canvas>
-                <!-- <img src='image.php?imgid=12345' alt='this is your img from the database' /> -->
-            </div>        
-        </div>           
         <div class="row" style="margin-top: 1em">
             <div class="col-1">
+            <canvas id="canvas3"></canvas>
+            <!-- <img src='image.php?imgid=12345' alt='this is your img from the database' /> -->                
             </div>
             <div class="col-7 ml-auto d-flex align-items-center button-row" align="center">
                 <button type="button"                               class="btn btn-primary" data-bind="click: $root.load_data,                                    enable: load_data_button_enabled()">1) Load Data</button>
@@ -52,6 +58,7 @@
                 <button type="button"                               class="btn btn-primary" data-bind="click: $root.create_tf_model,                              enable: create_tf_model_button_enabled()">2) Create TF Model</button>                
                 <button type="button"                               class="btn btn-primary" data-bind="click: $root.train_model,                                  enable: train_button_enabled()">3) Train</button>
                 <button type="button"                               class="btn btn-primary" data-bind="click: $root.save_model,                                   enable: save_model_button_enabled()">4) Save Model</button>
+                <button type="button"                               class="btn btn-primary" data-bind="click: $root.predict,                                      enable: save_model_button_enabled()">5) Predict</button>
             </div>
             <div class="col-3">
                 <table class="table">
@@ -87,8 +94,8 @@
             <div class="col-1">
             </div>                           
         </div>
-        <div class="row" style="height:200px">
-            <div class="col-2">
+        <div class="row" style="height:300px">
+            <div class="col-2 ml-auto d-flex align-items-center">
                 <h1>Training</h1>
             </div>
             <div class="col-4">
@@ -122,14 +129,12 @@
     </div>
     <script>
 
-
-let data;
 const IMAGE_H = 28;
 const IMAGE_W = 28;
 const IMAGE_SIZE = IMAGE_H * IMAGE_W;
 const NUM_CLASSES = 10;
-const NUM_DATASET_ELEMENTS = 33600 + 8400;
-const NUM_TRAIN_ELEMENTS = 33600 ;
+const NUM_DATASET_ELEMENTS = 35700 + 6300;
+const NUM_TRAIN_ELEMENTS = 35700 ;
 
 // 55/65 = .15
 // const NUM_DATASET_ELEMENTS = 65000;
@@ -140,33 +145,27 @@ const NUM_TEST_ELEMENTS = NUM_DATASET_ELEMENTS - NUM_TRAIN_ELEMENTS;
 
     var ViewModel = function () {
         var self = this;        
-
-        self.tf_model           = ko.observable({});
-        self.spinner            = ko.observable(new Spin());
-
-        self.data_loaded        = ko.observable(false);
-        self.data_is_loading    = ko.observable(false);
-        self.model_created      = ko.observable(false);
-        self.is_training        = ko.observable(false);
-        self.fetching           = ko.observable(false);
-        self.loss_chart         = ko.observable({});
-        self.accuracy_chart     = ko.observable({});
-            
-        self.loss_values        = ko.observableArray(['loss']);
-        self.accuracy_values    = ko.observableArray(['accuracy']);
-
+        self.tf_model                       = ko.observable({});
+        self.db                             = ko.observable(new LocalDb());
+        self.spinner                        = ko.observable(new Spin());
+        self.notify                         = ko.observable(new Notify());
+        self.data_loaded                    = ko.observable(false);
+        self.data_is_loading                = ko.observable(false);
+        self.model_created                  = ko.observable(false);
+        self.is_training                    = ko.observable(false);
+        self.fetching                       = ko.observable(false);
+        self.loss_chart                     = ko.observable({});
+        self.accuracy_chart                 = ko.observable({});            
+        self.loss_values                    = ko.observableArray(['loss']);
+        self.accuracy_values                = ko.observableArray(['accuracy']);
         self.validation_loss_values         = ko.observableArray(['val_loss']);
-        self.validation_accuracy_values     = ko.observableArray(['val_accuracy']);
-        
+        self.validation_accuracy_values     = ko.observableArray(['val_accuracy']);        
         self.percent_training_complete      = ko.observable(0);
-
         self.current_epoch                  = ko.observable(0);
         self.current_batch_num              = ko.observable(0);
 
         self.selected_model_type            = ko.observable('ConvNet');
         self.model_types                    = ko.observableArray(['ConvNet', 'DenseNet']);
-
-        self.mnist_data                     = ko.observable(new MnistData());
 
         //WORKING
         self.train_images_raw   = new Float32Array(NUM_DATASET_ELEMENTS * (IMAGE_SIZE));
@@ -280,6 +279,7 @@ const NUM_TEST_ELEMENTS = NUM_DATASET_ELEMENTS - NUM_TRAIN_ELEMENTS;
         };
 
         self.create_tf_model = function () {
+            self.notify().info('','Creating Tensorflow Model' );
             self.tf_model(self.get_model());
             self.tf_model().summary();
             self.model_created(true);
@@ -359,45 +359,71 @@ const NUM_TEST_ELEMENTS = NUM_DATASET_ELEMENTS - NUM_TRAIN_ELEMENTS;
                 );
         };
 
+        self.predict = async function () {
+
+        };
+
+        self.save_to_db = async function () {            
+            self.notify().notice('','Saving Data to IndexedDB' );
+            
+            await self.db().save_data(
+                self.train_images_raw, 
+                self.train_labels_raw,
+                NUM_DATASET_ELEMENTS,
+                IMAGE_SIZE,
+                NUM_CLASSES
+            );
+            //HACK
+            amplify.store( 'data_loaded',       true);
+            self.notify().info('','Data Saved to IndexedDB');            
+        };
+
         self.load_data = async function (){
             self.data_is_loading(true);
 
-            // await self.mnist_data().load_data();
-            // console.info('after resolve');
-            // self.data_is_loading(false);
-            // self.data_loaded(true);
-            // return;
-            
-            $.ajax({
-                url: '/api.php',					  
-                dataType: 'json',
-                success: function(data) {
-                    var row_num=0;
+            if (amplify.store( 'data_loaded')) {                
+                self.notify().info('','Loading from IndexdDb');
 
-                    data.train.forEach(function (trainobj) {
+                const d = await self.db().get_data(
+                    NUM_DATASET_ELEMENTS,
+                    IMAGE_SIZE,
+                    NUM_CLASSES
+                );
+                self.train_images_raw = d.train_images_raw;
+                self.train_labels_raw = d.train_labels_raw;
+                
+                self.data_is_loading(false);
+                self.data_loaded(true);                       
+            }
+            else {                
+                self.notify().notice('','Loading from AJAX');
+
+                $.ajax(
+                {
+                    url:        '/api.php',					  
+                    dataType:   'json',
+                }).done(function(data) {
+                    self.notify().notice('','Data Loaded - Converting PNG to Pixels...');
+
+                    var canvas = document.getElementById('canvas3');
+                    canvas.width  = 28;
+                    canvas.height = 28;                            
+                    var ctx = canvas.getContext('2d');               
+                    var myImageData = ctx.createImageData(28, 28);
+
+                    var row_num=0;
+                    alert(data.train.length);
+                    data.train.forEach( function (trainobj) {
                         var image_label = trainobj.label;                    
                         
                         var img = new Image();
                         img.id=trainobj.id;
                         img.row_num=row_num;
-                        //img.style.display = 'none';
                         img.onload = function() {
-
-                            var canvas = document.getElementById('canvas3');
-                            canvas.width  = 28;
-                            canvas.height = 28;                  
-                            //canvas.style.display = "none";      
-                            var ctx = canvas.getContext('2d');               
-                            var myImageData = ctx.createImageData(28, 28);
 
                             var pixels		= [];                            
                             ctx.drawImage(img, 0, 0);                            
-                            var imageData = ctx.getImageData(0, 0, 28, 28);
-                            var pix = imageData.data;
-                            if (this.row_num % 100 ==0) {
-                            console.info('train',this.row_num,row_num);
-                            }
-                            
+                            var pix = ctx.getImageData(0, 0, 28, 28).data;
                             for (var i = 0, n = pix.length; i < n; i += 4) {
                                 pixels.push(pix[i])
                             }
@@ -412,15 +438,21 @@ const NUM_TEST_ELEMENTS = NUM_DATASET_ELEMENTS - NUM_TRAIN_ELEMENTS;
                             for (var lo=0; lo<10; lo++){                                
                                 self.train_labels_raw[label_base_offset+lo] = (image_label === lo) ? 1 : 0;
                             }                            
-                            img=null;
+                            img=null;                            
+                            if (this.row_num==42000-1) {
+                                self.notify().info('','Pixel Conversion Complete');
+                                //alert('set data is load - save to local db');
+                                self.data_is_loading(false);
+                                self.data_loaded(true);                                
+                            }
                         };
                         img.src = 'data:image/png;base64,' + trainobj.pixels;
                         row_num++;
-                    });			
-                    self.data_is_loading(false);
-                    self.data_loaded(true);
-                },					  
-            });
+                    });                
+                }).fail(function(jqXHR, textStatus, errorThrown) {                                        
+                    self.notify().error('',textStatus + ': ' + errorThrown);
+                });
+            }
         };
 
         self.subscribe = function (){
@@ -439,11 +471,30 @@ const NUM_TEST_ELEMENTS = NUM_DATASET_ELEMENTS - NUM_TRAIN_ELEMENTS;
                 else {
                     self.spinner().spin_stop();
                 }
-            });            
+            });   
+            self.data_loaded.subscribe(function(newValue) {
+                if (newValue) {                    
+                    self.db().get_images_count().done(function(img_count){
+                        if (img_count > 0)
+                        {
+                            self.notify().info('','Loaded IndexedDB: ' + img_count + ' images' );
+                        }
+                        else{                            
+                            self.save_to_db();
+                        }
+                    });
+                }
+                else {
+                    //data_loaded = false                    
+                }
+            });   
         };        
         
         self.subscribe();
     };
+
+    //Dexie.delete('localmnist');
+    //amplify.store( 'data_loaded',null)
 
     //var img;
     var vm = new ViewModel();
