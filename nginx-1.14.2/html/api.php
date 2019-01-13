@@ -13,25 +13,24 @@
 	$predict_images			= array();
 
 	$stmt = $db->prepare('SELECT id,label FROM images ORDER BY RANDOM() ');	
-	$result =  $stmt->execute();
-	$count = 0;
+	$result =  $stmt->execute();	
 	while($row=$result->fetchArray($mode = SQLITE3_NUM))
 	{	   	   
 	   $obj				= new stdClass;
 	   $obj->id			= $row[0];
-	   $obj->label		= $row[1];
-
+	   $obj->label		= $row[1];	   
+	
 	   $stream 			= $db->openBlob('images', 'pixels', $obj->id);
 	   $obj->pixels		= base64_encode(stream_get_contents($stream));
 	   fclose($stream);
 
-	   if (NULL == $obj->label) 
+	   if (is_null($obj->label))
 	   {
-			array_push($predict_images, $obj);	
+		   $predict_images[] = $obj;
 	   }
-	   else {
-		   array_push($train_images, $obj);	   
-		   $count++;
+	   else 
+	   {
+			$train_images[] = $obj;
 	   }	   
 	}
 	$ret							= new stdClass;
