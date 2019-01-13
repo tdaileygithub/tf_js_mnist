@@ -96,7 +96,7 @@
             <div class="col-1">
             </div>                           
         </div>
-        <div class="row" style="height:300px" data-bind="visible: is_training">>
+        <div class="row" style="height:300px" data-bind="visible: is_training">
             <div class="col-2">
                 <h1>Training</h1>
             </div>

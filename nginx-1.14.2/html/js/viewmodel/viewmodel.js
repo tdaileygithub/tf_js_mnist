@@ -266,8 +266,7 @@ var ViewModel = function () {
                 var ctx = canvas.getContext('2d');               
                 var myImageData = ctx.createImageData(28, 28);
 
-                var row_num=0;
-                alert(data.train.length);
+                var row_num=0;                
                 data.train.forEach( function (trainobj) {
                     var image_label = trainobj.label;                    
                     
