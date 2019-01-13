@@ -10,7 +10,6 @@
 	
 	$db						= new MnistDb();
 	$train_images			= array();
-	//$test_images			= array();
 	$predict_images			= array();
 
 	$stmt = $db->prepare('SELECT id,label FROM images ORDER BY RANDOM() ');	
@@ -31,31 +30,12 @@
 			array_push($predict_images, $obj);	
 	   }
 	   else {
-		   //42000 rows in training.csv
-		   //28000 rows in test.csv -- the ones needed to predict
-		   //
-		   //42000 * 0.2 holdout = 8400
-		   //
-		   //8400 test images
-		   //33600 train images
-		   //---------------------
-		   //70000  total rows
-		//    if ($count > 8400) 
-		//    {				
-		// 		array_push($train_images, $obj);
-		//    }
-		//    else 
-		//    {
-		// 		array_push($test_images, $obj);	   
-		//    }	   
-
 		   array_push($train_images, $obj);	   
 		   $count++;
 	   }	   
 	}
 	$ret							= new stdClass;
 	$ret->train						= $train_images ;
-	//$ret->test						= $test_images ;
 	$ret->predict					= $predict_images ;
 
 	header('Content-type: application/json');
