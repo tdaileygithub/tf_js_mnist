@@ -5,7 +5,6 @@ class Spin {
         var spinner = new Spinner(this.get_spinner_opts()).spin(target);       
         this.spin_stop();
     }
-
     get_spinner_opts() {
         return {
             lines: 13, // The number of lines to draw
@@ -28,7 +27,6 @@ class Spin {
             position: 'absolute' // Element positioning
         };
     }
-
     spin_start() {
         $('#spinner').show();
     };
