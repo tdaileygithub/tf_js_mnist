@@ -209,13 +209,13 @@ var ViewModel = function () {
     {
         console.info('kaggle predictions');
         
-        const predict_img = self.tf_predict_images();
+        const predict_imgs = self.tf_predict_images();
     
         // Code wrapped in a tf.tidy() function callback will have their tensors freed
         // from GPU memory after execution without having to call dispose().
         // The tf.tidy callback runs synchronously.
         tf.tidy(() => {
-            const output = self.tf_model().predict(predict_img.xs);
+            const output = self.tf_model().predict(predict_imgs);
     
             // tf.argMax() returns the indices of the maximum values in the tensor along
             // a specific axis. Categorical classification tasks like this one often
