@@ -48,7 +48,7 @@
 </head>
 <body id="vm">
     
-    <div class="container-fluid" style="margin-top: 4em">
+    <div class="container-fluid" style="margin-top: 1em">
         <div class="row" style="margin-top: 1em">
             <div class="col-1">
             <canvas id="canvas3"></canvas>
@@ -91,6 +91,14 @@
                         <td>Epoch #</td>
                         <td data-bind="text: current_epoch"></td>
                     </tr>
+                    <tr>
+                        <td># Train Images</td>
+                        <td data-bind="text: number_training_images"></td>
+                    </tr>
+                    <tr>
+                        <td># Predict Images</td>
+                        <td data-bind="text: number_predict_images"></td>
+                    </tr>
                 </table>                
             </div>         
             <div class="col-1">
@@ -129,10 +137,11 @@
     const NUM_CLASSES = 10;
     const NUM_DATASET_ELEMENTS = 35700 + 6300;
     const NUM_TRAIN_ELEMENTS = 35700 ;
+    const NUM_PREDICT_ELEMENTS = 28000 ;
     const NUM_TEST_ELEMENTS = NUM_DATASET_ELEMENTS - NUM_TRAIN_ELEMENTS;
 
     //Dexie.delete('localmnist');
-    //amplify.store( 'data_loaded',null)
+    //amplify.store( 'data_loaded',null);
 
     var vm = new ViewModel();
     ko.applyBindings(vm, document.getElementById('vm'));

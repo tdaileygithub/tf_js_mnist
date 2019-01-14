@@ -3,19 +3,20 @@ class LocalDb {
     constructor() {                 
         this.db = new Dexie("localmnist");
         this.db.version(1).stores({
-            images: 'id'
+            images:         'id',
+            predict_images: 'id'
         });        
     }
 
-    async save_data(  
+    save_train_data( 
         train_images_raw,
-        train_labels_raw,
+        train_labels_raw, 
         NUM_DATASET_ELEMENTS,
         IMAGE_SIZE,
-        NUM_CLASSES
-    ) 
-    {        
-        return this.db.transaction('rw', this.db.images, async ()=>{
+        NUM_CLASSES)
+    {
+        var dfd = jQuery.Deferred();
+        this.db.transaction('rw', this.db.images, async ()=>{
             for (var i=0; i< NUM_DATASET_ELEMENTS; i+=1) {                
                 const image_offset=(i*IMAGE_SIZE);
                 const label_offset=(i*NUM_CLASSES);
@@ -26,13 +27,85 @@ class LocalDb {
                     train_label: train_labels_raw.slice(label_offset, label_offset+NUM_CLASSES)
                 });       
             }
-        }).then(result => {            
-            //trans commited
+        }).then(result => {                        
+            dfd.resolve();            
+        }).catch(function(error) {
+            alert ("Ooops: " + error);
+        });
+        return dfd.promise();
+    }           
+    
+    save_predict_data( 
+        predict_images_raw,
+        NUM_PREDICT_ELEMENTS,
+        IMAGE_SIZE)
+    {
+        var dfd = jQuery.Deferred();
+        this.db.transaction('rw', this.db.predict_images, async ()=>{
+            for (var i=0; i< NUM_PREDICT_ELEMENTS; i+=1) {                
+                const image_offset=(i*IMAGE_SIZE);                
+                this.db.predict_images.add(
+                {
+                    id:             i,
+                    predict_image:  predict_images_raw.slice(image_offset, image_offset+IMAGE_SIZE)                    
+                });       
+            }            
+            dfd.resolve(  );
+        });       
+        return dfd.promise();
+    }    
+
+    save_data(  
+        train_images_raw,
+        train_labels_raw, 
+        predict_images_raw,
+        NUM_DATASET_ELEMENTS,
+        NUM_PREDICT_ELEMENTS,
+        IMAGE_SIZE,
+        NUM_CLASSES
+    ) 
+    {        
+        var dfd = jQuery.Deferred();
+        var self=this;
+        this.save_train_data(
+            train_images_raw,
+            train_labels_raw, 
+            NUM_DATASET_ELEMENTS,
+            IMAGE_SIZE,
+            NUM_CLASSES
+        ).then(function() {
+            self.save_predict_data(
+                predict_images_raw,
+                NUM_PREDICT_ELEMENTS,
+                IMAGE_SIZE                
+            ).then(function() {
+                dfd.resolve(  );
+            });
+        });
+        return dfd.promise();
+    }
+
+    async get_prediction_data(
+        NUM_PREDICT_ELEMENTS,
+        IMAGE_SIZE
+    ) {        
+        var predict_images_raw   = new Float32Array(NUM_PREDICT_ELEMENTS * (IMAGE_SIZE));
+        await this.db.predict_images.orderBy('id').each(function(img) {
+            const image_offset=(img.id*IMAGE_SIZE);            
+            for (var i=image_offset; i< image_offset+IMAGE_SIZE;i++ ){
+                predict_images_raw[i] = img.predict_image[i-image_offset];
+            }
         }).catch(function(error) {
             alert ("Ooops: " + error);
         });        
-    }
-    async get_data(
+        const ret =
+        {
+            predict_images_raw: predict_images_raw
+        };
+        return ret;        
+    };
+
+    async get_training_data(
         NUM_DATASET_ELEMENTS,
         IMAGE_SIZE,
         NUM_CLASSES

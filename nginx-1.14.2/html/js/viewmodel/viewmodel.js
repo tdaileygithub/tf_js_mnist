@@ -23,9 +23,18 @@ var ViewModel = function () {
     self.model_types                    = ko.observableArray(['ConvNet', 'DenseNet']);
 
     //WORKING
-    self.train_images_raw   = new Float32Array(NUM_DATASET_ELEMENTS * (IMAGE_SIZE));
-    self.train_labels_raw   = new Uint8Array(NUM_DATASET_ELEMENTS * (NUM_CLASSES));        
+    self.train_images_raw       = new Float32Array(NUM_DATASET_ELEMENTS * (IMAGE_SIZE));
+    self.train_labels_raw       = new Uint8Array(NUM_DATASET_ELEMENTS * (NUM_CLASSES)); 
+    self.predict_images_raw     = new Float32Array(NUM_PREDICT_ELEMENTS * (IMAGE_SIZE));       
 
+    self.number_training_images = ko.pureComputed(function () {
+        return parseInt(self.train_images_raw.length / IMAGE_SIZE,10);        
+    }, self);
+
+    self.number_predict_images = ko.pureComputed(function () {
+        return parseInt(self.predict_images_raw.length / IMAGE_SIZE,10);        
+    }, self);
+    
     self.tf_train_images = ko.pureComputed(function () {
         var ti = self.train_images_raw.slice(0, IMAGE_SIZE * NUM_TRAIN_ELEMENTS);
         return tf.tensor4d(ti, [ti.length / IMAGE_SIZE, IMAGE_H, IMAGE_W, 1]);
@@ -196,18 +205,112 @@ var ViewModel = function () {
 
     };
 
-    self.save_to_db = async function () {            
+    self.save_to_db = function () {            
         self.notify().notice('','Saving Data to IndexedDB' );
         
-        await self.db().save_data(
+        self.db().save_data(
             self.train_images_raw, 
             self.train_labels_raw,
+            self.predict_images_raw, 
             NUM_DATASET_ELEMENTS,
+            NUM_PREDICT_ELEMENTS,
             IMAGE_SIZE,
             NUM_CLASSES
-        );        
-        amplify.store( 'data_loaded',       true);
-        self.notify().info('','Data Saved to IndexedDB');            
+        ).then (function() {
+            amplify.store( 'data_loaded',       true);
+            self.notify().info('','Data Saved to IndexedDB');            
+        });
+    };
+
+    self.load_training_data = function(training_data) {
+        var dfd = jQuery.Deferred();
+
+        var canvas = document.getElementById('canvas3');
+        canvas.width  = 28;
+        canvas.height = 28;                            
+        var ctx = canvas.getContext('2d');               
+        var myImageData = ctx.createImageData(28, 28);
+
+        var row_num=0;                
+        training_data.forEach( function (trainobj) {
+            var image_label = trainobj.label;                    
+            
+            var img = new Image();
+            img.id=trainobj.id;
+            img.row_num=row_num;
+            img.onload = function() {
+
+                var pixels		= [];                            
+                ctx.drawImage(img, 0, 0);                            
+                var pix = ctx.getImageData(0, 0, 28, 28).data;
+                for (var i = 0, n = pix.length; i < n; i += 4) {
+                    pixels.push(pix[i])
+                }
+                const image_base_offset = this.row_num * IMAGE_SIZE;
+                const label_base_offset = this.row_num * NUM_CLASSES;								
+                var index = 0;
+                for (var row = 0; row < IMAGE_H; row++) {
+                    for (var col = 0; col < IMAGE_W; col++, index++) {										
+                        self.train_images_raw[image_base_offset + index] = pixels[index];
+                    }
+                }      
+                for (var lo=0; lo<10; lo++){                                
+                    self.train_labels_raw[label_base_offset+lo] = (image_label === lo) ? 1 : 0;
+                }                            
+                img=null;                            
+                if (this.row_num==42000-1) {
+                    self.notify().info('','Training Conversion Complete');
+                    //alert('set data is load - save to local db');
+                    dfd.resolve( );
+                }
+            };
+            img.src = 'data:image/png;base64,' + trainobj.pixels;
+            row_num++;
+        });    
+        return dfd.promise();
+    };
+
+    self.load_predict_data = function(predict_data) {
+        var dfd = jQuery.Deferred();
+
+        var canvas = document.getElementById('canvas3');
+        canvas.width  = 28;
+        canvas.height = 28;                            
+        var ctx = canvas.getContext('2d');               
+        var myImageData = ctx.createImageData(28, 28);
+
+        var row_num=0;                
+        predict_data.forEach( function (predictobj) {
+            var img = new Image();
+            img.id=predictobj.id;
+            img.row_num=row_num;
+            img.onload = function() {
+
+                var pixels		= [];                            
+                ctx.drawImage(img, 0, 0);                            
+                var pix = ctx.getImageData(0, 0, 28, 28).data;
+                for (var i = 0, n = pix.length; i < n; i += 4) {
+                    pixels.push(pix[i])
+                }
+                const image_base_offset = this.row_num * IMAGE_SIZE;
+                const label_base_offset = this.row_num * NUM_CLASSES;								
+                var index = 0;
+                for (var row = 0; row < IMAGE_H; row++) {
+                    for (var col = 0; col < IMAGE_W; col++, index++) {										
+                        self.predict_images_raw[image_base_offset + index] = pixels[index];
+                    }
+                }      
+                img=null;                            
+                if (this.row_num==28000-1) {
+                    self.notify().info('','Predict Conversion Complete');
+                    //alert('set data is load - save to local db');
+                    dfd.resolve( );
+                }
+            };
+            img.src = 'data:image/png;base64,' + predictobj.pixels;
+            row_num++;
+        });    
+        return dfd.promise();
     };
 
     self.load_data = async function (){
@@ -216,13 +319,21 @@ var ViewModel = function () {
         if (amplify.store( 'data_loaded')) {                
             self.notify().info('','Loading from IndexdDb');
 
-            const d = await self.db().get_data(
+            const d = await self.db().get_training_data(
                 NUM_DATASET_ELEMENTS,
                 IMAGE_SIZE,
                 NUM_CLASSES
             );
             self.train_images_raw = d.train_images_raw;
             self.train_labels_raw = d.train_labels_raw;
+            self.notify().info('','Training Data Loaded');
+
+            const pd = await self.db().get_prediction_data(
+                NUM_PREDICT_ELEMENTS,
+                IMAGE_SIZE
+            );
+            self.predict_images_raw = d.predict_images_raw;            
+            self.notify().info('','Prediction Data Loaded');
             
             self.data_is_loading(false);
             self.data_loaded(true);                       
@@ -236,52 +347,17 @@ var ViewModel = function () {
                 dataType:   'json',
             }).done(function(data) {
                 self.notify().notice('','Data Loaded - Converting PNG to Pixels...');
-
-                var canvas = document.getElementById('canvas3');
-                canvas.width  = 28;
-                canvas.height = 28;                            
-                var ctx = canvas.getContext('2d');               
-                var myImageData = ctx.createImageData(28, 28);
-
-                var row_num=0;                
-                data.train.forEach( function (trainobj) {
-                    var image_label = trainobj.label;                    
-                    
-                    var img = new Image();
-                    img.id=trainobj.id;
-                    img.row_num=row_num;
-                    img.onload = function() {
-
-                        var pixels		= [];                            
-                        ctx.drawImage(img, 0, 0);                            
-                        var pix = ctx.getImageData(0, 0, 28, 28).data;
-                        for (var i = 0, n = pix.length; i < n; i += 4) {
-                            pixels.push(pix[i])
-                        }
-                        const image_base_offset = this.row_num * IMAGE_SIZE;
-                        const label_base_offset = this.row_num * NUM_CLASSES;								
-                        var index = 0;
-                        for (var row = 0; row < IMAGE_H; row++) {
-                            for (var col = 0; col < IMAGE_W; col++, index++) {										
-                                self.train_images_raw[image_base_offset + index] = pixels[index];
-                            }
-                        }      
-                        for (var lo=0; lo<10; lo++){                                
-                            self.train_labels_raw[label_base_offset+lo] = (image_label === lo) ? 1 : 0;
-                        }                            
-                        img=null;                            
-                        if (this.row_num==42000-1) {
-                            self.notify().info('','Pixel Conversion Complete');
-                            //alert('set data is load - save to local db');
-                            self.data_is_loading(false);
-                            self.data_loaded(true);                                
-                        }
-                    };
-                    img.src = 'data:image/png;base64,' + trainobj.pixels;
-                    row_num++;
+                
+                self.load_training_data(data.train).then(function() {
+                    self.load_predict_data(data.predict).then(function() {
+                        self.notify().info('','Prediction Conversion Complete');                        
+                        self.data_is_loading(false);
+                        self.data_loaded(true);                                                            
+                    });
                 });
+
             }).fail(function(jqXHR, textStatus, errorThrown) {                                        
-                self.notify().error('',textStatus + ': ' + errorThrown);
+                self.notify().error(textStatus, errorThrown);
             });
         }
     };
@@ -315,7 +391,7 @@ var ViewModel = function () {
                 self.db().get_images_count().done(function(img_count){
                     if (img_count > 0)
                     {
-                        self.notify().info('','Loaded IndexedDB: ' + img_count + ' images' );
+                        //self.notify().info('','Loaded IndexedDB: ' + img_count + ' images' );
                     }
                     else{                            
                         self.save_to_db();
