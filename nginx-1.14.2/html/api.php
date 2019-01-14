@@ -19,8 +19,9 @@
 	   $obj				= new stdClass;
 	   $obj->id			= $row[0];
 	   $obj->label		= $row[1];
-	   $obj->csv_file	= $row[2];
-	   $obj->csv_row	= $row[3];
+	   //not used
+	   //$obj->csv_file	= $row[2];
+	   //$obj->csv_row	= $row[3];
 
 	   $stream 			= $db->openBlob('images', 'pixels', $obj->id);
 	   $obj->pixels		= base64_encode(stream_get_contents($stream));

@@ -21,6 +21,8 @@
     <script src="/js/amplify.store.min.js"></script>
     <!-- dexie.js -->
     <script src="/js/dexie.min.js"></script>
+    <!-- linq.js -->
+    <script src="/js/linq.js"></script>
     <!-- boostrap -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">    
     <script src="/js/bootstrap.min.js" ></script>    
@@ -30,7 +32,7 @@
     <!-- c3 and d3 -->
     <link rel="stylesheet" href="/css/c3.min.css" />    
     <script src="/js/d3.min.js"></script>
-    <script src="/js/c3.min.js"></script>
+    <script src="/js/c3.min.js"></script>    
     <!-- pnotify -->
     <link rel="stylesheet" href="/css/pnotify.css" />    
     <link rel="stylesheet" href="/css/pnotify.brighttheme.css" />        
@@ -57,10 +59,15 @@
                         <select class="custom-select" style="width: 10em" data-bind="options: model_types, value: selected_model_type,      enable: create_tf_model_button_enabled()"></select>
                         <button type="button"                               class="btn btn-primary" data-bind="click: $root.create_tf_model,                              enable: create_tf_model_button_enabled()">2) Create TF Model</button>                
                         <button type="button"                               class="btn btn-primary" data-bind="click: $root.train_model,                                  enable: train_button_enabled()">3) Train</button>
-                        <button type="button"                               class="btn btn-primary" data-bind="click: $root.save_model,                                   enable: save_model_button_enabled()">4) Save Model</button>
-                        <button type="button"                               class="btn btn-primary" data-bind="click: $root.predict,                                      enable: predict_button_enabled()">5) Predict</button>
+                        <button type="button"                               class="btn btn-primary" data-bind="click: $root.save_model,                                   enable: save_model_button_enabled()">4) Save Model</button>                        
                     </div>
                 </div>
+                <div class="row" style="margin-top: 1em">
+                    <div class="col-12">
+                        <button type="button"                               class="btn btn-secondary" data-bind="click: $root.load_model,                                   enable: load_model_button_enabled()">Load Model</button>
+                        <button type="button"                               class="btn btn-secondary" data-bind="click: $root.predict,                                      enable: predict_button_enabled()">Predict</button>
+                    </div>
+                </div>                
                 <div class="row" style="height:300px; margin-top: 1em" data-bind="visible: is_training">
                     <div class="col-4">
                         <h3>Training</h3>
@@ -87,7 +94,7 @@
                         <td colspan="2"><div class="spinner"> <div id="spinner"></div> </div></td>                        
                     </tr>                    
                     <tr>
-                        <td>Done %</td>
+                        <td>Training %</td>
                         <td data-bind="text: percent_training_complete"></td>
                     </tr>
                     <tr>
@@ -139,7 +146,6 @@
 
     var vm = new ViewModel();
     ko.applyBindings(vm, document.getElementById('vm'));
-
 
     $(document).ready(function() {
         //TODO:   processing.js functions

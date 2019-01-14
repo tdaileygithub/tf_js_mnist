@@ -3,10 +3,50 @@ class LocalDb {
     constructor() {                 
         this.db = new Dexie("localmnist");
         this.db.version(1).stores({
-            images:         'id',
-            predict_images: 'id'
+            images:             'id',
+            predict_images:     'id',
+            predict_offset_map: 'id',
+            train_offset_map:   'id',
         });        
     }
+
+    save_predict_offset_map(predict_offset_to_db_id)
+    {
+        var dfd = jQuery.Deferred();
+        this.db.transaction('rw', this.db.predict_offset_map, async ()=>{
+            for (var i=0; i< predict_offset_to_db_id.length; i+=1) {                
+                this.db.predict_offset_map.add(
+                {
+                    id:          i,
+                    db_id:       predict_offset_to_db_id[i]
+                });
+            }
+        }).then(result => {                        
+            dfd.resolve();            
+        }).catch(function(error) {
+            alert ("Ooops: " + error);
+        });
+        return dfd.promise();
+    }           
+    
+    save_train_offset_map(train_offset_to_db_id)
+    {
+        var dfd = jQuery.Deferred();
+        this.db.transaction('rw', this.db.train_offset_map, async ()=>{
+            for (var i=0; i< train_offset_to_db_id.length; i+=1) {                
+                this.db.train_offset_map.add(
+                {
+                    id:          i,
+                    db_id:       train_offset_to_db_id[i]
+                });
+            }
+        }).then(result => {                        
+            dfd.resolve();            
+        }).catch(function(error) {
+            alert ("Ooops: " + error);
+        });
+        return dfd.promise();
+    }            
 
     save_train_data( 
         train_images_raw,
@@ -59,6 +99,8 @@ class LocalDb {
         train_images_raw,
         train_labels_raw, 
         predict_images_raw,
+        predict_offset_to_db_id,
+        train_offset_to_db_id,
         NUM_DATASET_ELEMENTS,
         NUM_PREDICT_ELEMENTS,
         IMAGE_SIZE,
@@ -74,12 +116,24 @@ class LocalDb {
             IMAGE_SIZE,
             NUM_CLASSES
         ).then(function() {
+            alert ('2');
             self.save_predict_data(
                 predict_images_raw,
                 NUM_PREDICT_ELEMENTS,
                 IMAGE_SIZE                
             ).then(function() {
-                dfd.resolve(  );
+                alert ('3');
+                self.save_predict_offset_map(
+                    predict_offset_to_db_id
+                ).then(function() {
+                    alert ('4');
+                    self.save_train_offset_map(
+                        train_offset_to_db_id
+                    ).then(function() {
+                        alert ('5');
+                        dfd.resolve(  );
+                    });
+                });
             });
         });
         return dfd.promise();
@@ -104,6 +158,40 @@ class LocalDb {
         };
         return ret;        
     };
+
+    async get_train_offset_map(
+        NUM_DATASET_ELEMENTS        
+    ) {        
+        var train_offset_map   = new Uint32Array(NUM_DATASET_ELEMENTS);
+
+        await this.db.train_offset_map.orderBy('id').each(function(offset) {
+            train_offset_map[offset.id] = offset.db_id;
+        }).catch(function(error) {
+            alert ("Ooops: " + error);
+        });        
+        const ret =
+        {
+            train_offset_map: train_offset_map
+        };
+        return ret;        
+    };
+
+    async get_predict_offset_map(
+        NUM_PREDICT_ELEMENTS        
+    ) {        
+        var predict_offset_map   = new Uint32Array(NUM_DATASET_ELEMENTS);
+
+        await this.db.predict_offset_map.orderBy('id').each(function(offset) {
+            predict_offset_map[offset.id] = offset.db_id;
+        }).catch(function(error) {
+            alert ("Ooops: " + error);
+        });        
+        const ret =
+        {
+            predict_offset_map: predict_offset_map
+        };
+        return ret;        
+    };    
 
     async get_training_data(
         NUM_DATASET_ELEMENTS,
