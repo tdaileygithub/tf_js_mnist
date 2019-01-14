@@ -12,14 +12,16 @@
 	$train_images			= array();
 	$predict_images			= array();
 
-	$stmt = $db->prepare('SELECT id,label FROM images ORDER BY RANDOM() ');	
+	$stmt = $db->prepare('SELECT id,label,csv_file,csv_row FROM images ORDER BY RANDOM() ');	
 	$result =  $stmt->execute();	
 	while($row=$result->fetchArray($mode = SQLITE3_NUM))
 	{	   	   
 	   $obj				= new stdClass;
 	   $obj->id			= $row[0];
-	   $obj->label		= $row[1];	   
-	
+	   $obj->label		= $row[1];
+	   $obj->csv_file	= $row[2];
+	   $obj->csv_row	= $row[3];
+
 	   $stream 			= $db->openBlob('images', 'pixels', $obj->id);
 	   $obj->pixels		= base64_encode(stream_get_contents($stream));
 	   fclose($stream);

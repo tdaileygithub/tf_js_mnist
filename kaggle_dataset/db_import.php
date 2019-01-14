@@ -13,6 +13,8 @@ $db = new MnistDb();
 $db->exec('
 CREATE TABLE `images` (
 	`id`			INTEGER PRIMARY KEY AUTOINCREMENT,	
+	`csv_file`		TEXT,	
+	`csv_row`		INTEGER,	
 	`label`			INTEGER NULL CHECK(label >= 0 and label <= 9),
 	`prediction`	INTEGER NULL CHECK(prediction >= 0 and prediction <= 9),	
 	`pixels`		BLOB NULL
@@ -23,6 +25,9 @@ CREATE INDEX `ix_images_label` ON `images` ( `label` )
 ');
 $db->exec('
 CREATE INDEX `ix_images_prediction` ON `images` ( `prediction` )
+');
+$db->exec('
+CREATE INDEX `ix_images_csv_file` ON `images` ( `csv_file` )
 ');
 
 function write_png_from_pixels($pixels_arr) {
@@ -57,12 +62,13 @@ while (($data = fgetcsv($file)) !== FALSE) {
 	if ($row_ct > 0) {
 		$label_val = $data[0];
 		 
-		$stmt = $db->prepare('INSERT INTO images (label,pixels) VALUES (:label,:pixels)');		
-		$stmt->bindValue(':label',			$data[0],													SQLITE3_INTEGER);		
+		$stmt = $db->prepare('INSERT INTO images (label,pixels,csv_file,csv_row) VALUES (:label,:pixels,:csv_file,:csv_row)');
+		$stmt->bindValue(':label',			$data[0],													SQLITE3_INTEGER);
 		$stmt->bindValue(':pixels', 		write_png_from_pixels(array_slice($data, 1)), 				\PDO::PARAM_LOB);
+		$stmt->bindValue(':csv_file',		"train.csv",												SQLITE3_TEXT);
+		$stmt->bindValue(':csv_row', 		$row_ct,														SQLITE3_INTEGER);
 		$stmt->execute();
-
-		echo "row: " . $row_ct . "\n";
+		echo "train row: " . $row_ct . "\n";
 	}
 	$row_ct++;
 }
@@ -74,11 +80,13 @@ $row_ct = 0;
 $db->exec('BEGIN;');
 while (($data = fgetcsv($file)) !== FALSE) {
 	if ($row_ct > 0) {
-		$stmt = $db->prepare('INSERT INTO images (label,pixels) VALUES (:label,:pixels)');		
+		$stmt = $db->prepare('INSERT INTO images (label,pixels,csv_file,csv_row) VALUES (:label,:pixels,:csv_file,:csv_row)');		
 		$stmt->bindValue(':label',			NULL,														SQLITE3_INTEGER);		
 		$stmt->bindValue(':pixels', 		write_png_from_pixels(array_slice($data, 0)), 				\PDO::PARAM_LOB);
+		$stmt->bindValue(':csv_file',		"test.csv",													SQLITE3_TEXT);
+		$stmt->bindValue(':csv_row', 		$row_ct,														SQLITE3_INTEGER);		
 		$stmt->execute();
-		echo "row: " . $row_ct . "\n";		
+		echo "test row: " . $row_ct . "\n";		
 	}
 	$row_ct++;
 }
