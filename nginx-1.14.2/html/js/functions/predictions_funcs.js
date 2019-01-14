@@ -72,7 +72,7 @@ function showTestResults(batch, predictions, labels) {
 async function showPredictions(model, event, batch, logs) {
     console.info('showPredictions', event, batch, logs);
 
-    const testExamples = 10;
+    const testExamples = 5;
     const examples = vm.getTestData(testExamples);
 
     // Code wrapped in a tf.tidy() function callback will have their tensors freed

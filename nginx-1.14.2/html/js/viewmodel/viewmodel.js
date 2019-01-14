@@ -8,8 +8,7 @@ var ViewModel = function () {
     self.data_is_loading                = ko.observable(false);
     self.model_created                  = ko.observable(false);
     self.is_training                    = ko.observable(false);
-    self.fetching                       = ko.observable(false);
-    self.loss_chart                     = ko.observable({});
+    self.fetching                       = ko.observable(false);    
     self.accuracy_chart                 = ko.observable({});            
     self.loss_values                    = ko.observableArray(['loss']);
     self.accuracy_values                = ko.observableArray(['accuracy']);
@@ -25,7 +24,10 @@ var ViewModel = function () {
     //WORKING
     self.train_images_raw       = new Float32Array(NUM_DATASET_ELEMENTS * (IMAGE_SIZE));
     self.train_labels_raw       = new Uint8Array(NUM_DATASET_ELEMENTS * (NUM_CLASSES)); 
-    self.predict_images_raw     = new Float32Array(NUM_PREDICT_ELEMENTS * (IMAGE_SIZE));       
+    self.predict_images_raw     = new Float32Array(NUM_PREDICT_ELEMENTS * (IMAGE_SIZE));
+
+    self.predict_offset_to_csv_row  = new Uint32Array(NUM_PREDICT_ELEMENTS);
+    self.train_offset_to_csv_row    = new Uint32Array(NUM_PREDICT_ELEMENTS);
 
     self.number_training_images = ko.pureComputed(function () {
         return parseInt(self.train_images_raw.length / IMAGE_SIZE,10);        
@@ -39,6 +41,11 @@ var ViewModel = function () {
         var ti = self.train_images_raw.slice(0, IMAGE_SIZE * NUM_TRAIN_ELEMENTS);
         return tf.tensor4d(ti, [ti.length / IMAGE_SIZE, IMAGE_H, IMAGE_W, 1]);
     }, self);
+    
+    self.tf_predict_images = ko.pureComputed(function () {
+        var ti = self.predict_images_raw.slice(0);
+        return tf.tensor4d(ti, [ti.length / IMAGE_SIZE, IMAGE_H, IMAGE_W, 1]);
+    }, self);    
 
     self.tf_test_images = ko.pureComputed(function () {
         var ti = self.train_images_raw.slice(IMAGE_SIZE * NUM_TRAIN_ELEMENTS);
@@ -102,6 +109,11 @@ var ViewModel = function () {
         return  {xs, labels};
     };
 
+    self.getPredictData = function () {
+        let xs      = self.tf_test_images();
+        return  {xs};
+    };    
+
     self.getTrainData = ko.pureComputed(function () {
         const xs        = self.tf_train_images();
         const labels    = self.tf_train_label();
@@ -136,14 +148,10 @@ var ViewModel = function () {
         self.percent_training_complete((batch_num / totalNumBatches * 100).toFixed(1));
 
         if (0 == batch_num % 10) {
-            self.loss_chart().load({
-                columns: [
-                    self.loss_values()
-                ]                
-            });
             self.accuracy_chart().load({
                 columns: [
-                    self.accuracy_values()
+                    self.accuracy_values(),
+                    self.loss_values(),
                 ]                
             });
         }
@@ -159,31 +167,27 @@ var ViewModel = function () {
     self.train_model = function () {
         self.is_training(true);
 
-        self.loss_chart(c3.generate({
-            bindto: '#loss_chart',
+        self.accuracy_chart(c3.generate({
+            bindto: '#accuracy_chart',
             size: {
                 height: 240,
                 width: 480
             },                                
             data: {
                 columns: [
-                    ['loss'],
-                ]
-            }
+                    ['loss', 'accuracy'],
+                ],
+                axes: {
+                    data1: 'y',
+                    data2: 'y2'
+                }                
+            },
+            axis: {
+                y2: {
+                    show: true
+                }
+            }            
         }));            
-        self.accuracy_chart(c3.generate({
-            bindto: '#accuracy_chart',
-            size: {
-                height: 240,
-                width: 480
-            },                
-            data: {
-                columns: [
-                    ['accuracy'],
-                ]
-            }
-        }));
-
         train(  self.tf_model(), 
                 (batch_num, total_num_batches, logs)        => self.batch_end(batch_num, total_num_batches, logs),
                 (epoch, batch_num, total_num_batches, logs) => self.epoch_end(epoch, batch_num, total_num_batches, logs),
@@ -201,8 +205,36 @@ var ViewModel = function () {
             );
     };
 
-    self.predict = async function () {
-
+    self.predict = function () 
+    {
+        console.info('kaggle predictions');
+        
+        const predict_img = self.tf_predict_images();
+    
+        // Code wrapped in a tf.tidy() function callback will have their tensors freed
+        // from GPU memory after execution without having to call dispose().
+        // The tf.tidy callback runs synchronously.
+        tf.tidy(() => {
+            const output = self.tf_model().predict(predict_img.xs);
+    
+            // tf.argMax() returns the indices of the maximum values in the tensor along
+            // a specific axis. Categorical classification tasks like this one often
+            // represent classes as one-hot vectors. One-hot vectors are 1D vectors with
+            // one element for each output class. All values in the vector are 0
+            // except for one, which has a value of 1 (e.g. [0, 0, 0, 1, 0]). The
+            // output from model.predict() will be a probability distribution, so we use
+            // argMax to get the index of the vector element that has the highest
+            // probability. This is our prediction.
+            // (e.g. argmax([0.07, 0.1, 0.03, 0.75, 0.05]) == 3)
+            // dataSync() synchronously downloads the tf.tensor values from the GPU so
+            // that we can use them in our normal CPU JavaScript code
+            // (for a non-blocking version of this function, use data()).
+            const axis = 1;
+            //const labels = Array.from(examples.labels.argMax(axis).dataSync());
+            const predictions = Array.from(output.argMax(axis).dataSync());
+            console.info(predictions);
+            //showTestResults(examples, predictions, labels);
+        });
     };
 
     self.save_to_db = function () {            
@@ -332,7 +364,7 @@ var ViewModel = function () {
                 NUM_PREDICT_ELEMENTS,
                 IMAGE_SIZE
             );
-            self.predict_images_raw = d.predict_images_raw;            
+            self.predict_images_raw = pd.predict_images_raw;            
             self.notify().info('','Prediction Data Loaded');
             
             self.data_is_loading(false);

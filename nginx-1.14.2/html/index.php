@@ -50,17 +50,36 @@
     
     <div class="container-fluid" style="margin-top: 1em">
         <div class="row" style="margin-top: 1em">
-            <div class="col-1">
-            <canvas id="canvas3"></canvas>
-            <!-- <img src='image.php?imgid=12345' alt='this is your img from the database' /> -->                
-            </div>
-            <div class="col-7 ml-auto d-flex align-items-center button-row" align="center">
-                <button type="button"                               class="btn btn-primary" data-bind="click: $root.load_data,                                    enable: load_data_button_enabled()">1) Load Data</button>
-                <select class="custom-select" style="width: 10em" data-bind="options: model_types, value: selected_model_type,      enable: create_tf_model_button_enabled()"></select>
-                <button type="button"                               class="btn btn-primary" data-bind="click: $root.create_tf_model,                              enable: create_tf_model_button_enabled()">2) Create TF Model</button>                
-                <button type="button"                               class="btn btn-primary" data-bind="click: $root.train_model,                                  enable: train_button_enabled()">3) Train</button>
-                <button type="button"                               class="btn btn-primary" data-bind="click: $root.save_model,                                   enable: save_model_button_enabled()">4) Save Model</button>
-                <button type="button"                               class="btn btn-primary" data-bind="click: $root.predict,                                      enable: predict_button_enabled()">5) Predict</button>
+            <div class="col-8">
+                <div class="row">
+                    <div class="col-12">
+                        <button type="button"                               class="btn btn-primary" data-bind="click: $root.load_data,                                    enable: load_data_button_enabled()">1) Load Data</button>
+                        <select class="custom-select" style="width: 10em" data-bind="options: model_types, value: selected_model_type,      enable: create_tf_model_button_enabled()"></select>
+                        <button type="button"                               class="btn btn-primary" data-bind="click: $root.create_tf_model,                              enable: create_tf_model_button_enabled()">2) Create TF Model</button>                
+                        <button type="button"                               class="btn btn-primary" data-bind="click: $root.train_model,                                  enable: train_button_enabled()">3) Train</button>
+                        <button type="button"                               class="btn btn-primary" data-bind="click: $root.save_model,                                   enable: save_model_button_enabled()">4) Save Model</button>
+                        <button type="button"                               class="btn btn-primary" data-bind="click: $root.predict,                                      enable: predict_button_enabled()">5) Predict</button>
+                    </div>
+                </div>
+                <div class="row" style="height:300px; margin-top: 1em" data-bind="visible: is_training">
+                    <div class="col-4">
+                        <h3>Training</h3>
+                    </div>
+                    <div class="col-4">
+                        <div id="accuracy_chart">
+                        </div>
+                    </div>
+                    <div class="col-4">
+                    </div>
+                </div>
+                <div class="row" data-bind="visible: is_training">
+                    <div class="col-4">
+                        <h3>Test Predictions</h3>
+                    </div>
+                    <div class="col-8">
+                        <div id="images" style="display:inline-flex"></div>
+                    </div>
+                </div>                   
             </div>
             <div class="col-3">
                 <table class="table">
@@ -103,32 +122,7 @@
             </div>         
             <div class="col-1">
             </div>                           
-        </div>
-        <div class="row" style="height:300px" data-bind="visible: is_training">
-            <div class="col-2">
-                <h1>Training</h1>
-            </div>
-            <div class="col-4">
-                <div id="accuracy_chart">
-                </div>
-            </div>
-            <div class="col-4">
-                <div id="loss_chart">
-                </div>
-            </div>
-            <div class="col-2">
-            </div>
-        </div>          
-        <div class="row" data-bind="visible: is_training">
-            <div class="col-2 ml-auto d-flex align-items-center">
-                <h1>Test Predictions</h1>
-            </div>
-            <div class="col-8">
-                <div id="images" style="display:inline-flex"></div>
-            </div>
-            <div class="col-2">
-            </div>            
-        </div>            
+        </div>    
     </div>
 <script>
     const IMAGE_H = 28;
@@ -151,6 +145,9 @@
         //TODO:   processing.js functions
     });
 </script>
+
+<canvas id="canvas3"></canvas>
+<!-- <img src='image.php?imgid=12345' alt='this is your img from the database' /> -->                            
 
 </body>
 </html>

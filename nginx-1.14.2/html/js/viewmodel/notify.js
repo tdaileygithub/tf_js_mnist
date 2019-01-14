@@ -1,15 +1,17 @@
 
 class Notify {
     constructor() { 
+        this.stack = {dir1: "up", dir2: "left"}; 
     }
-    msg(title, text, type) {
+    msg(title, text, type) {        
         new PNotify({
             width: "500px",
             title: title,
             text: text,
             type: type,
             delay: 1000,
-            stack: {"dir1": "down", "dir2": "right", "push": "top","firstpos1": 25, "firstpos2": 25}
+            addclass: 'stack-bottomleft',
+            stack:  this.stack
           });  
     };    
     info(title, text) {
