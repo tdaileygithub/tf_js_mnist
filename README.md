@@ -1,7 +1,11 @@
 # tf_js_mnist
 
+![Alt text](images/001.jpg?raw=true "Tf.js - Kaggle Digit Recognizer")
+
 Mnist sample using tensorflow.js.
 Example application styled after the tensorflow.js mnist example.
+
+*Scored: 0.96971 using tf.js default mnist model*
 
 # Creating the sqlite3 database from  kaggle csv files
 
@@ -18,12 +22,11 @@ Github has a 50MB file limit.  Mnist.db and source csv files are too large.
 
 ## Stack
 
-### Server
-
 - Nginx w/ PHP as FastCGI
 - Sqlite3
+- IndexedDB
 
-Why: The simpliest web setup possible standalone setup on windows that can be checked in github.  Focus is on learning TF.js workflow.
+*Why*: The simpliest web setup on windows that can be checked in github.  Focus is on learning TF.js workflow.
 
 ### Web Frontend
 
@@ -36,3 +39,4 @@ Why: The simpliest web setup possible standalone setup on windows that can be ch
 - d3.js + c3.js
 - PNotify
 - Processing.js
+- Linq.js
